@@ -55,7 +55,7 @@
 ## Требования на серверах
 
 - На **обоих** серверах: Docker и Docker Compose (v2), пользователь SSH в группе `docker` (или иначе может выполнять `docker compose`).
-- Каталоги `$REMOTE_PATH` (прод) и `$REMOTE_PATH_TEST` (тест) создаются workflow при первом деплое.
+- Каталоги `$REMOTE_PATH` (прод) и `$REMOTE_PATH_TEST` (тест) создаются workflow при первом деплое (в домашнем каталоге SSH-пользователя: `~/infrastructure`, `~/infrastructure-test` — root на сервере не нужен).
 
 ## Поведение
 
