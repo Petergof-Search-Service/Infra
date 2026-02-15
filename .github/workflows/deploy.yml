@@ -17,8 +17,8 @@ jobs:
 
       - name: Generate nginx config
         run: |
-          export ROOT_PATH="${{ secrets.ROOT_PATH }}"
-          envsubst '${ROOT_PATH}' < nginx/frontend.conf.template > nginx/frontend.conf
+          export REMOTE_PATH_FRONTEND="${{ secrets.REMOTE_PATH_FRONTEND }}"
+          envsubst '${REMOTE_PATH_FRONTEND}' < nginx/frontend.conf.template > nginx/frontend.conf
 
       - name: Setup SSH key
         uses: webfactory/ssh-agent@v0.9.0
