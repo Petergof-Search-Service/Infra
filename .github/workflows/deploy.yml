@@ -3,6 +3,9 @@ name: Deploy infrastructure
 on:
   push:
     branches: [main]
+  # TODO: remove this after testing
+  pull_request:
+    branches: [main]
 
 jobs:
   deploy-nginx:
