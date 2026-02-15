@@ -1,21 +1,24 @@
-name: Deploy infrastructure
+name: Deploy Infrastructure
 
 on:
   push:
     branches: [main]
+  repository_dispatch:
+    types: [frontend-updated, frontend-test-updated]
+  workflow_dispatch:
+
+env:
+  REMOTE_PATH: "/opt/infrastructure"
+  REMOTE_PATH_TEST: "/opt/infrastructure-test"
 
 jobs:
-  deploy-nginx:
-    name: Deploy nginx config
+  deploy-prod:
+    name: Deploy to prod
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.action == 'frontend-updated'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Generate nginx config
-        run: |
-          export REMOTE_PATH_FRONTEND="${{ secrets.REMOTE_PATH_FRONTEND }}"
-          envsubst '${REMOTE_PATH_FRONTEND}' < nginx/frontend.conf.template > nginx/frontend.conf
 
       - name: Setup SSH key
         uses: webfactory/ssh-agent@v0.9.0
@@ -27,24 +30,74 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Ensure nginx is installed
+      - name: Ensure remote path exists
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ${{ env.REMOTE_PATH }}"
+
+      - name: Deploy config to server (on push to main)
+        if: github.event_name == 'push'
+        run: |
+          rsync -avz --delete \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            --exclude='.git' \
+            . \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.REMOTE_PATH }}/
+
+      - name: Log in to ghcr.io on server (private package)
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            'command -v nginx >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y nginx; test -f /etc/nginx/sites-enabled/frontend.conf && sudo rm -f /etc/nginx/sites-enabled/default; sudo systemctl start nginx)'
+            "echo '${{ secrets.GHCR_TOKEN }}' | docker login ghcr.io -u '${{ secrets.GHCR_USERNAME }}' --password-stdin"
 
-      - name: Upload config and apply
+      - name: Deploy / update containers
+        env:
+          FRONTEND_IMAGE: ${{ github.event.client_payload.image || '' }}
         run: |
-          scp -o StrictHostKeyChecking=no \
-            nginx/frontend.conf \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/frontend.conf
-          ssh -o StrictHostKeyChecking=no \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            'sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled && \
-             sudo cp /tmp/frontend.conf /etc/nginx/sites-available/frontend.conf && \
-             sudo ln -sf /etc/nginx/sites-available/frontend.conf /etc/nginx/sites-enabled/ && \
-             sudo rm -f /etc/nginx/sites-enabled/default && \
-             sudo nginx -t && \
-             (sudo systemctl is-active --quiet nginx && sudo systemctl reload nginx || sudo systemctl start nginx)'
-          ssh -o StrictHostKeyChecking=no \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            'rm -f /tmp/frontend.conf'
+          if [ -n "$FRONTEND_IMAGE" ]; then
+            ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+              "cd ${{ env.REMOTE_PATH }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
+          else
+            ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+              "cd ${{ env.REMOTE_PATH }} && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
+          fi
+
+  deploy-test:
+    name: Deploy to test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'repository_dispatch' && github.event.action == 'frontend-test-updated'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY_TEST }}
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SSH_HOST_TEST }} >> ~/.ssh/known_hosts
+
+      - name: Ensure remote path exists
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }} "mkdir -p ${{ env.REMOTE_PATH_TEST }}"
+
+      - name: Deploy config to test server
+        run: |
+          rsync -avz --delete \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            --exclude='.git' \
+            . \
+            ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }}:${{ env.REMOTE_PATH_TEST }}/
+
+      - name: Log in to ghcr.io on server (private package)
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }} \
+            "echo '${{ secrets.GHCR_TOKEN }}' | docker login ghcr.io -u '${{ secrets.GHCR_USERNAME }}' --password-stdin"
+
+      - name: Deploy / update containers
+        env:
+          FRONTEND_IMAGE: ${{ github.event.client_payload.image }}
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }} \
+            "cd ${{ env.REMOTE_PATH_TEST }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
