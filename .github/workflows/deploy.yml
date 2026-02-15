@@ -30,6 +30,11 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Ensure nginx is installed
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            'command -v nginx >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y nginx)'
+
       - name: Upload config and apply
         run: |
           scp -o StrictHostKeyChecking=no \
