@@ -37,7 +37,8 @@ jobs:
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/frontend.conf
           ssh -o StrictHostKeyChecking=no \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            'sudo cp /tmp/frontend.conf /etc/nginx/sites-available/frontend.conf && \
+            'sudo mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled && \
+             sudo cp /tmp/frontend.conf /etc/nginx/sites-available/frontend.conf && \
              sudo ln -sf /etc/nginx/sites-available/frontend.conf /etc/nginx/sites-enabled/ && \
              sudo rm -f /etc/nginx/sites-enabled/default && \
              sudo nginx -t && \
