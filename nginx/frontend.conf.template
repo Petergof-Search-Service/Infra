@@ -1,12 +1,12 @@
-# Шаблон конфига. При деплое через CI подставляется ROOT_PATH из секрета:
-#   export ROOT_PATH="${{ secrets.ROOT_PATH }}"
-#   envsubst '${ROOT_PATH}' < frontend.conf.template > frontend.conf
+# Шаблон конфига. При деплое через CI подставляется REMOTE_PATH_FRONTEND из секрета:
+#   export REMOTE_PATH_FRONTEND="${{ secrets.REMOTE_PATH_FRONTEND }}"
+#   envsubst '${REMOTE_PATH_FRONTEND}' < frontend.conf.template > frontend.conf
 
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
 
-    root ${ROOT_PATH};
+    root ${REMOTE_PATH_FRONTEND};
 
     server_name _;
 
