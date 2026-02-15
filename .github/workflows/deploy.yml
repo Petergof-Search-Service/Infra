@@ -33,7 +33,7 @@ jobs:
       - name: Ensure nginx is installed
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            'command -v nginx >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y nginx)'
+            'command -v nginx >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y nginx; test -f /etc/nginx/sites-enabled/frontend.conf && sudo rm -f /etc/nginx/sites-enabled/default; sudo systemctl start nginx)'
 
       - name: Upload config and apply
         run: |
