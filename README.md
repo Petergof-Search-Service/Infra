@@ -8,6 +8,7 @@
 |------|------------|
 | `docker-compose.yml` | Сервисы: frontend (образ из env/registry), nginx (прокси на frontend:80). |
 | `nginx/frontend.conf` | Конфиг nginx: proxy_pass на контейнер frontend. |
+| `nginx/frontend.conf.template` | Шаблон (для справки; подстановок нет). |
 
 ## Как это работает
 
@@ -39,13 +40,6 @@
 | `SSH_HOST_TEST` | Хост тестового сервера. |
 | `SSH_USER_TEST` | Пользователь SSH на тестовом сервере. |
 
-**Pull приватного образа с ghcr.io** (если пакет frontend приватный — типично, если в организации отключены публичные пакеты):
-
-| Секрет | Описание |
-|--------|----------|
-| `GHCR_TOKEN` | PAT с правом `read:packages` (для `docker pull` с ghcr.io на серверах). |
-| `GHCR_USERNAME` | Логин GitHub (пользователь или организация, владелец пакета), например `Petergof-Search-Service`. |
-
 ## Секрет в репозитории Frontend
 
 | Секрет | Описание |
@@ -55,7 +49,7 @@
 ## Требования на серверах
 
 - На **обоих** серверах: Docker и Docker Compose (v2), пользователь SSH в группе `docker` (или иначе может выполнять `docker compose`).
-- Каталоги `$REMOTE_PATH` (прод) и `$REMOTE_PATH_TEST` (тест) создаются workflow при первом деплое (в домашнем каталоге SSH-пользователя: `~/infrastructure`, `~/infrastructure-test` — root на сервере не нужен).
+- Каталоги `$REMOTE_PATH` (прод) и `$REMOTE_PATH_TEST` (тест) создаются workflow при первом деплое.
 
 ## Поведение
 
