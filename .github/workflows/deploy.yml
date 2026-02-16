@@ -8,14 +8,14 @@ on:
   workflow_dispatch:
 
 env:
-  REMOTE_PATH: "~/Petergof/infrastructure"
-  REMOTE_PATH_TEST: "~/Petergof/infrastructure-test"
+  REMOTE_PATH: "/opt/infrastructure"
+  REMOTE_PATH_TEST: "/opt/infrastructure-test"
 
 jobs:
   deploy-prod:
     name: Deploy to prod
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.action == 'frontend-updated'
+    if: github.event_name == 'push' || (github.event_name == 'repository_dispatch' && github.event.action == 'frontend-updated')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,11 +42,6 @@ jobs:
             --exclude='.git' \
             . \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.REMOTE_PATH }}/
-
-      - name: Log in to ghcr.io on server (private package)
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "echo '${{ secrets.GHCR_TOKEN }}' | docker login ghcr.io -u '${{ secrets.GHCR_USERNAME }}' --password-stdin"
 
       - name: Deploy / update containers
         env:
@@ -89,11 +84,6 @@ jobs:
             --exclude='.git' \
             . \
             ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }}:${{ env.REMOTE_PATH_TEST }}/
-
-      - name: Log in to ghcr.io on server (private package)
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }} \
-            "echo '${{ secrets.GHCR_TOKEN }}' | docker login ghcr.io -u '${{ secrets.GHCR_USERNAME }}' --password-stdin"
 
       - name: Deploy / update containers
         env:
