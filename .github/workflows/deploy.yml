@@ -36,7 +36,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ${{ env.REMOTE_PATH }}"
 
       - name: Generate nginx config
-        run: sed 's/{{DOMAIN}}/petergof-sciense-rag.ru/g' nginx/frontend-ssl.conf.template > nginx/frontend.conf
+        run: sed 's/{{DOMAIN}}/petergof-sciense-rag.ru/g' nginx/default.conf.template > nginx/default.conf
 
       - name: Deploy config to server (on push to main)
         if: github.event_name == 'push'
@@ -83,7 +83,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }} "mkdir -p ${{ env.REMOTE_PATH_TEST }}"
 
       - name: Generate nginx config
-        run: sed 's/{{DOMAIN}}/test.petergof-sciense-rag.ru/g' nginx/frontend-ssl.conf.template > nginx/frontend.conf
+        run: sed 's/{{DOMAIN}}/test.petergof-sciense-rag.ru/g' nginx/default.conf.template > nginx/default.conf
 
       - name: Deploy config to test server
         run: |
