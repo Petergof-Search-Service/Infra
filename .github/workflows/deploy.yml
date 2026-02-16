@@ -5,7 +5,7 @@ on:
     branches: [main]
   pull_request:
   repository_dispatch:
-    types: [frontend-updated, frontend-test-updated]
+    types: [frontend-updated, frontend-test-updated, api-updated, api-test-updated]
   workflow_dispatch:
 
 env:
@@ -16,7 +16,7 @@ jobs:
   deploy-prod:
     name: Deploy to prod
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || (github.event_name == 'repository_dispatch' && github.event.action == 'frontend-updated')
+    if: github.event_name == 'push' || (github.event_name == 'repository_dispatch' && (github.event.action == 'frontend-updated' || github.event.action == 'api-updated'))
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,10 +49,11 @@ jobs:
 
       - name: Deploy / update containers
         env:
-          FRONTEND_IMAGE: ${{ github.event.client_payload.image || '' }}
+          FRONTEND_IMAGE: ${{ github.event.action == 'frontend-updated' && github.event.client_payload.image || '' }}
+          API_IMAGE: ${{ github.event.action == 'api-updated' && github.event.client_payload.image || '' }}
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "cd ${{ env.REMOTE_PATH }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
+            "cd ${{ env.REMOTE_PATH }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && export API_IMAGE='$API_IMAGE' && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
 
       - name: Healthcheck
         run: |
@@ -62,7 +63,7 @@ jobs:
   deploy-test:
     name: Deploy to test
     runs-on: ubuntu-latest
-    if: github.event_name == 'repository_dispatch' && github.event.action == 'frontend-test-updated' || github.event_name == 'pull_request'
+    if: github.event_name == 'repository_dispatch' && (github.event.action == 'frontend-test-updated' || github.event.action == 'api-test-updated') || github.event_name == 'pull_request'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -94,10 +95,11 @@ jobs:
 
       - name: Deploy / update containers
         env:
-          FRONTEND_IMAGE: ${{ github.event_name == 'pull_request' && 'ghcr.io/petergof-search-service/frontend:latest' || github.event.client_payload.image }}
+          FRONTEND_IMAGE: ${{ github.event_name == 'pull_request' && 'ghcr.io/petergof-search-service/frontend:latest' || (github.event.action == 'frontend-test-updated' && github.event.client_payload.image) || '' }}
+          API_IMAGE: ${{ github.event.action == 'api-test-updated' && github.event.client_payload.image || (github.event_name == 'pull_request' && 'ghcr.io/petergof-search-service/api:latest') || '' }}
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }} \
-            "cd ${{ env.REMOTE_PATH_TEST }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && docker compose down && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
+            "cd ${{ env.REMOTE_PATH_TEST }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && export API_IMAGE='$API_IMAGE' && docker compose down && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
 
       - name: Healthcheck
         run: |
