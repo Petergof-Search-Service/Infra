@@ -19,6 +19,6 @@ server {
     access_log /var/log/nginx/nginx_access.log;
     error_log  /var/log/nginx/nginx_error.log;
 
-    include snippets/api.conf;
-    include snippets/frontend.conf;
+    include conf.d/snippets/api.conf;
+    include conf.d/snippets/frontend.conf;
 }
