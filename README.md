@@ -8,7 +8,6 @@
 |------|------------|
 | `docker-compose.yml` | Сервисы: frontend (образ из env/registry), nginx (прокси на frontend:80). |
 | `nginx/frontend.conf` | Конфиг nginx: proxy_pass на контейнер frontend. |
-| `nginx/frontend.conf.template` | Шаблон (для справки; подстановок нет). |
 
 ## Как это работает
 
