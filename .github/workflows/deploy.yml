@@ -90,4 +90,4 @@ jobs:
           FRONTEND_IMAGE: ${{ github.event.client_payload.image }}
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }} \
-            "cd ${{ env.REMOTE_PATH_TEST }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
+            "cd ${{ env.REMOTE_PATH_TEST }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && docker compose -f docker-compose.yml -f docker-compose.test.yml pull && docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --remove-orphans && docker image prune -f"
