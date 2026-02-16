@@ -55,6 +55,12 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
             "cd ${{ env.REMOTE_PATH }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && export API_IMAGE='$API_IMAGE' && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
 
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ env.REMOTE_PATH }} && echo '=== API logs ===' && docker compose logs --tail=200 api && echo '=== DB logs ===' && docker compose logs --tail=100 db"
+
       - name: Healthcheck
         run: |
           sleep 5
@@ -100,6 +106,12 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }} \
             "cd ${{ env.REMOTE_PATH_TEST }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && export API_IMAGE='$API_IMAGE' && docker compose down && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
+
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }} \
+            "cd ${{ env.REMOTE_PATH_TEST }} && echo '=== API logs ===' && docker compose logs --tail=200 api && echo '=== DB logs ===' && docker compose logs --tail=100 db"
 
       - name: Healthcheck
         run: |
