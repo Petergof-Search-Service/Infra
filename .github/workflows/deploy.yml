@@ -36,7 +36,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ${{ env.REMOTE_PATH }}"
 
       - name: Deploy config to server (on push to main)
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
         run: |
           rsync -avz --delete \
             -e "ssh -o StrictHostKeyChecking=no" \
@@ -55,6 +55,13 @@ jobs:
             ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
               "cd ${{ env.REMOTE_PATH }} && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
           fi
+
+      - name: Healthcheck
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          sleep 5
+          curl -f -s -o /dev/null --connect-timeout 10 --max-time 15 --retry 3 --retry-delay 5 "http://$SSH_HOST/"
 
   deploy-test:
     name: Deploy to test
@@ -92,3 +99,8 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }} \
             "cd ${{ env.REMOTE_PATH_TEST }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && docker compose -f docker-compose.yml -f docker-compose.test.yml down && docker compose -f docker-compose.yml -f docker-compose.test.yml pull && docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --remove-orphans && docker image prune -f"
+
+      - name: Healthcheck
+        run: |
+          sleep 5
+          curl -f -s -o /dev/null -k --connect-timeout 10 --max-time 15 --retry 3 --retry-delay 5 "https://test.petergof-sciense-rag.ru/"
