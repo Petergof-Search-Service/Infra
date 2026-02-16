@@ -1,10 +1,19 @@
-# Nginx как reverse proxy на контейнер frontend (всё в Docker).
+# Генерируется из шаблона: подставить {{DOMAIN}} (petergof-sciense-rag.ru или test.petergof-sciense-rag.ru).
 
 server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
+    listen 80;
+    listen [::]:80;
+    server_name {{DOMAIN}};
+    return 301 https://$host$request_uri;
+}
 
-    server_name _;
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name {{DOMAIN}};
+
+    ssl_certificate     /etc/letsencrypt/live/{{DOMAIN}}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{DOMAIN}}/privkey.pem;
 
     access_log /var/log/nginx/nginx_access.log;
     error_log  /var/log/nginx/nginx_error.log;

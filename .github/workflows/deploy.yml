@@ -3,6 +3,7 @@ name: Deploy Infrastructure
 on:
   push:
     branches: [main]
+  pull_request:
   repository_dispatch:
     types: [frontend-updated, frontend-test-updated]
   workflow_dispatch:
@@ -34,6 +35,9 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ${{ env.REMOTE_PATH }}"
 
+      - name: Generate nginx config
+        run: sed 's/{{DOMAIN}}/petergof-sciense-rag.ru/g' nginx/frontend-ssl.conf.template > nginx/frontend.conf
+
       - name: Deploy config to server (on push to main)
         if: github.event_name == 'push'
         run: |
@@ -47,18 +51,18 @@ jobs:
         env:
           FRONTEND_IMAGE: ${{ github.event.client_payload.image || '' }}
         run: |
-          if [ -n "$FRONTEND_IMAGE" ]; then
-            ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-              "cd ${{ env.REMOTE_PATH }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
-          else
-            ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-              "cd ${{ env.REMOTE_PATH }} && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
-          fi
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ env.REMOTE_PATH }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
+
+      - name: Healthcheck
+        run: |
+          sleep 5
+          curl -f -s -o /dev/null -k --connect-timeout 10 --max-time 15 --retry 3 --retry-delay 5 "https://petergof-sciense-rag.ru/"
 
   deploy-test:
     name: Deploy to test
     runs-on: ubuntu-latest
-    if: github.event_name == 'repository_dispatch' && github.event.action == 'frontend-test-updated'
+    if: github.event_name == 'repository_dispatch' && github.event.action == 'frontend-test-updated' || github.event_name == 'pull_request'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -77,6 +81,9 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }} "mkdir -p ${{ env.REMOTE_PATH_TEST }}"
 
+      - name: Generate nginx config
+        run: sed 's/{{DOMAIN}}/test.petergof-sciense-rag.ru/g' nginx/frontend-ssl.conf.template > nginx/frontend.conf
+
       - name: Deploy config to test server
         run: |
           rsync -avz --delete \
@@ -87,7 +94,12 @@ jobs:
 
       - name: Deploy / update containers
         env:
-          FRONTEND_IMAGE: ${{ github.event.client_payload.image }}
+          FRONTEND_IMAGE: ${{ github.event_name == 'pull_request' && 'ghcr.io/petergof-search-service/frontend:latest' || github.event.client_payload.image }}
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }} \
-            "cd ${{ env.REMOTE_PATH_TEST }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
+            "cd ${{ env.REMOTE_PATH_TEST }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && docker compose down && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
+
+      - name: Healthcheck
+        run: |
+          sleep 5
+          curl -f -s -o /dev/null -k --connect-timeout 10 --max-time 15 --retry 3 --retry-delay 5 "https://test.petergof-sciense-rag.ru/"

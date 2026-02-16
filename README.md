@@ -6,8 +6,8 @@
 
 | Файл | Назначение |
 |------|------------|
-| `docker-compose.yml` | Сервисы: frontend (образ из env/registry), nginx (прокси на frontend:80). |
-| `nginx/frontend.conf` | Конфиг nginx: proxy_pass на контейнер frontend. |
+| `docker-compose.yml` | Сервисы: frontend (образ из env/registry), nginx (80 и 443, прокси на frontend, сертификаты Let's Encrypt). |
+| `nginx/frontend-ssl.conf.template` | Шаблон с плейсхолдером `{{DOMAIN}}`; при деплое из него генерируется `frontend.conf` с доменом прод/тест. |
 
 ## Как это работает
 
@@ -16,12 +16,12 @@
    - При **push в любую другую ветку** (в т.ч. коммиты в PR): собирает образ с тегом `branch-shortSha` → пушит в ghcr.io → вызывает `repository_dispatch` с типом `frontend-test-updated` и payload `image` → деплой на **тест**.
 
 2. **Этот репо (Infra)**  
-   - **Прод**: при `push` в `main` или при событии `frontend-updated` — копирует репо в `$REMOTE_PATH` (при push), на целевом сервере выставляет `FRONTEND_IMAGE` из payload (при dispatch) и выполняет `docker compose pull` и `up -d`.  
-   - **Тест**: при событии `frontend-test-updated` — то же самое на тестовом сервере в `$REMOTE_PATH_TEST`.
+   - **Прод**: при `push` в `main` или при событии `frontend-updated` — генерирует `frontend.conf` из шаблона с доменом petergof-sciense-rag.ru, копирует репо в `$REMOTE_PATH`, на сервере выполняет `docker compose pull` и `up -d`.  
+   - **Тест**: при событии `frontend-test-updated` — то же с доменом test.petergof-sciense-rag.ru в `$REMOTE_PATH_TEST`.
 
 Образ по умолчанию на проде: `ghcr.io/petergof-search-service/frontend:latest`.
 
-## Секреты репозитория (Infra)
+## Секреты организации
 
 **Прод-сервер:**
 
@@ -39,16 +39,29 @@
 | `SSH_HOST_TEST` | Хост тестового сервера. |
 | `SSH_USER_TEST` | Пользователь SSH на тестовом сервере. |
 
-## Секрет в репозитории Frontend
+**Секреты для доступа в Infra из других Actions:**
 
 | Секрет | Описание |
 |--------|----------|
 | `INFRA_REPO_TOKEN` | PAT с правом `repo` для вызова `repository_dispatch` в репо Infra. |
 
+## Домен и HTTPS
+
+### Стенды
+
+   Тестовый стенд https://test.petergof-sciense-rag.ru
+
+   Продовый стенд https://petergof-sciense-rag.ru
+
+### Первичная установка
+   1) Установка certbot `sudo apt update && sudo apt install -y certbot`
+   2) Выпуск ssl сертификата для домена (подставить нужны для прода или тестинга) `sudo certbot certonly --standalone -d petergof-sciense-rag.ru`
+
 ## Требования на серверах
 
 - На **обоих** серверах: Docker и Docker Compose (v2), пользователь SSH в группе `docker` (или иначе может выполнять `docker compose`).
 - Каталоги `$REMOTE_PATH` (прод) и `$REMOTE_PATH_TEST` (тест) создаются workflow при первом деплое.
+- Для HTTPS на **проде**: certbot и `/etc/letsencrypt/live/petergof-sciense-rag.ru/`. На **тесте**: certbot и сертификат для test.petergof-sciense-rag.ru.
 
 ## Поведение
 
