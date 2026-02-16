@@ -21,7 +21,7 @@
 
 Образ по умолчанию на проде: `ghcr.io/petergof-search-service/frontend:latest`.
 
-## Секреты репозитория (Infra)
+## Секреты организации
 
 **Прод-сервер:**
 
@@ -39,51 +39,29 @@
 | `SSH_HOST_TEST` | Хост тестового сервера. |
 | `SSH_USER_TEST` | Пользователь SSH на тестовом сервере. |
 
-## Секрет в репозитории Frontend
+**Секреты для доступа в Infra из других Actions:**
 
 | Секрет | Описание |
 |--------|----------|
 | `INFRA_REPO_TOKEN` | PAT с правом `repo` для вызова `repository_dispatch` в репо Infra. |
 
-## Домен и HTTPS для продового сервера
+## Домен и HTTPS
 
-Прод работает по домену **petergof-sciense-rag.ru** с HTTPS. Один раз на продовом сервере нужно выпустить сертификат:
+### Стенды
 
-1. **DNS**  
-   Убедитесь, что у домена petergof-sciense-rag.ru есть A-запись на публичный IP продового сервера.
+   Тестовый стенд https://test.petergof-sciense-rag.ru
 
-2. **Установка certbot** (если ещё нет):  
-   `sudo apt update && sudo apt install -y certbot`  
-   (или `sudo snap install --classic certbot` и `sudo ln -s /snap/bin/certbot /usr/local/bin/certbot`).
+   Продовый стенд https://petergof-sciense-rag.ru
 
-3. **Освободить порт 80 и выпустить сертификат:**  
-   ```bash
-   cd $REMOTE_PATH   # например ~/Petergof/infrastructure
-   docker compose down
-   sudo certbot certonly --standalone -d petergof-sciense-rag.ru
-   docker compose up -d
-   ```  
-   Certbot сохранит сертификаты в `/etc/letsencrypt/live/petergof-sciense-rag.ru/`. Продление — как у теста (systemd timer при установке через apt).
-
-## Домен и HTTPS для тестового сервера
-
-Тест работает по домену **test.petergof-sciense-rag.ru**. Конфиг nginx при деплое генерируется из шаблона с этим доменом. Один раз на тестовом сервере выпустите сертификат:
-
-1. **DNS** — A-запись test.petergof-sciense-rag.ru на IP тестового сервера.
-
-2. **Certbot** (как на проде):  
-   ```bash
-   cd $REMOTE_PATH_TEST
-   docker compose down
-   sudo certbot certonly --standalone -d test.petergof-sciense-rag.ru
-   docker compose up -d
-   ```
+### Первичная установка
+   1) Установка certbot `sudo apt update && sudo apt install -y certbot`
+   2) Выпуск ssl сертификата для домена (подставить нужны для прода или тестинга) `sudo certbot certonly --standalone -d petergof-sciense-rag.ru`
 
 ## Требования на серверах
 
 - На **обоих** серверах: Docker и Docker Compose (v2), пользователь SSH в группе `docker` (или иначе может выполнять `docker compose`).
 - Каталоги `$REMOTE_PATH` (прод) и `$REMOTE_PATH_TEST` (тест) создаются workflow при первом деплое.
-- Для HTTPS на **проде**: certbot и `/etc/letsencrypt/live/petergof-sciense-rag.ru/` (см. раздел выше). На **тесте**: certbot и сертификат для test.petergof-sciense-rag.ru.
+- Для HTTPS на **проде**: certbot и `/etc/letsencrypt/live/petergof-sciense-rag.ru/`. На **тесте**: certbot и сертификат для test.petergof-sciense-rag.ru.
 
 ## Поведение
 
