@@ -36,7 +36,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ${{ env.REMOTE_PATH }}"
 
       - name: Generate nginx config
-        run: sed 's/{{DOMAIN}}/petergof-sciense-rag.ru/g' nginx/frontend-ssl.conf.template > nginx/frontend.conf
+        run: sed 's/{{DOMAIN}}/petergof-sciense-rag.ru/g' nginx/default.conf.template > nginx/default.conf
 
       - name: Deploy config to server (on push to main)
         if: github.event_name == 'push'
@@ -54,6 +54,12 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
             "cd ${{ env.REMOTE_PATH }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && export API_IMAGE='$API_IMAGE' && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
+
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ env.REMOTE_PATH }} && echo '=== API logs ===' && docker compose logs --tail=200 api && echo '=== DB logs ===' && docker compose logs --tail=100 db"
 
       - name: Healthcheck
         run: |
@@ -83,7 +89,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }} "mkdir -p ${{ env.REMOTE_PATH_TEST }}"
 
       - name: Generate nginx config
-        run: sed 's/{{DOMAIN}}/test.petergof-sciense-rag.ru/g' nginx/frontend-ssl.conf.template > nginx/frontend.conf
+        run: sed 's/{{DOMAIN}}/test.petergof-sciense-rag.ru/g' nginx/default.conf.template > nginx/default.conf
 
       - name: Deploy config to test server
         run: |
@@ -100,6 +106,12 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }} \
             "cd ${{ env.REMOTE_PATH_TEST }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && export API_IMAGE='$API_IMAGE' && docker compose down && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
+
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }} \
+            "cd ${{ env.REMOTE_PATH_TEST }} && echo '=== API logs ===' && docker compose logs --tail=200 api && echo '=== DB logs ===' && docker compose logs --tail=100 db"
 
       - name: Healthcheck
         run: |
