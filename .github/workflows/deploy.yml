@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 env:
-  REMOTE_PATH: "/opt/infrastructure"
-  REMOTE_PATH_TEST: "/opt/infrastructure-test"
+  REMOTE_PATH: "~/Petergof/infrastructure"
+  REMOTE_PATH_TEST: "~/Petergof/infrastructure-test"
 
 jobs:
   deploy-prod:
