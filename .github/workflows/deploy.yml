@@ -43,12 +43,20 @@ jobs:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          ACCESS_TOKEN_EXPIRE_MINUTES: ${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}
+          REFRESH_TOKEN_EXPIRE_DAYS: ${{ secrets.REFRESH_TOKEN_EXPIRE_DAYS }}
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+          JWT_ALGORITHM: ${{ secrets.JWT_ALGORITHM }}
           FRONTEND_IMAGE: ${{ github.event.action == 'frontend-updated' && github.event.client_payload.image || '' }}
           API_IMAGE: ${{ github.event.action == 'api-updated' && github.event.client_payload.image || '' }}
         run: |
           echo "POSTGRES_USER=$POSTGRES_USER" > .env
           echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" >> .env
           echo "POSTGRES_DB=$POSTGRES_DB" >> .env
+          echo "ACCESS_TOKEN_EXPIRE_MINUTES=$ACCESS_TOKEN_EXPIRE_MINUTES" >> .env
+          echo "REFRESH_TOKEN_EXPIRE_DAYS=$REFRESH_TOKEN_EXPIRE_DAYS" >> .env
+          echo "JWT_SECRET_KEY=$JWT_SECRET_KEY" >> .env
+          echo "JWT_ALGORITHM=$JWT_ALGORITHM" >> .env
           echo "FRONTEND_IMAGE=$FRONTEND_IMAGE" >> .env
           echo "API_IMAGE=$API_IMAGE" >> .env
 
@@ -111,13 +119,21 @@ jobs:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER_TEST }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD_TEST }}
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          ACCESS_TOKEN_EXPIRE_MINUTES: ${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}
+          REFRESH_TOKEN_EXPIRE_DAYS: ${{ secrets.REFRESH_TOKEN_EXPIRE_DAYS }}
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY_TEST }}
+          JWT_ALGORITHM: ${{ secrets.JWT_ALGORITHM }}
           FRONTEND_IMAGE: ${{ github.event_name == 'pull_request' && 'ghcr.io/petergof-search-service/frontend:latest' || (github.event.action == 'frontend-test-updated' && github.event.client_payload.image) || '' }}
           API_IMAGE: ${{ github.event.action == 'api-test-updated' && github.event.client_payload.image || (github.event_name == 'pull_request' && 'ghcr.io/petergof-search-service/api:latest') || '' }}
         run: |
-          echo "POSTGRES_USER=$POSTGRES_USER" > .env
-          echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" >> .env
-          echo "POSTGRES_DB=$POSTGRES_DB" >> .env
-          echo "FRONTEND_IMAGE=$FRONTEND_IMAGE" >> .env
+          echo "POSTGRES_USER=$POSTGRES_USER" > .env &&
+          echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" >> .env &&
+          echo "POSTGRES_DB=$POSTGRES_DB" >> .env &&
+          echo "ACCESS_TOKEN_EXPIRE_MINUTES=$ACCESS_TOKEN_EXPIRE_MINUTES" >> .env &&
+          echo "REFRESH_TOKEN_EXPIRE_DAYS=$REFRESH_TOKEN_EXPIRE_DAYS" >> .env &&
+          echo "JWT_SECRET_KEY=$JWT_SECRET_KEY" >> .env &&
+          echo "JWT_ALGORITHM=$JWT_ALGORITHM" >> .env &&
+          echo "FRONTEND_IMAGE=$FRONTEND_IMAGE" >> .env &&
           echo "API_IMAGE=$API_IMAGE" >> .env
 
       - name: Deploy config to test server
