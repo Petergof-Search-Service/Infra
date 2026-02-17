@@ -16,6 +16,18 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-andrey}:${POSTGRES_PASSWORD:-Password}@db:5432/${POSTGRES_DB:-rag_database}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-10}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      OCR_FOLDER_ID: ${OCR_FOLDER_ID}
+      OCR_ACCESS_KEY: ${OCR_ACCESS_KEY}
+      OCR_SECRET_KEY: ${OCR_SECRET_KEY}
+      OCR_BUCKET_NAME: ${OCR_BUCKET_NAME}
+      RAG_YANDEX_API_KEY: ${RAG_YANDEX_API_KEY}
+      RAG_YANDEX_FOLDER_ID: ${RAG_YANDEX_FOLDER_ID}
+      RAG_ACCESS_KEY: ${RAG_ACCESS_KEY}
+      RAG_SECRET_KEY: ${RAG_SECRET_KEY}
     depends_on:
       db:
         condition: service_healthy
