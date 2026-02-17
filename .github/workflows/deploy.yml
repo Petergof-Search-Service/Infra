@@ -38,6 +38,20 @@ jobs:
       - name: Generate nginx config
         run: sed 's/{{DOMAIN}}/petergof-sciense-rag.ru/g' nginx/default.conf.template > nginx/default.conf
 
+      - name: Create .env for prod
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          FRONTEND_IMAGE: ${{ github.event.action == 'frontend-updated' && github.event.client_payload.image || '' }}
+          API_IMAGE: ${{ github.event.action == 'api-updated' && github.event.client_payload.image || '' }}
+        run: |
+          echo "POSTGRES_USER=$POSTGRES_USER" > .env
+          echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" >> .env
+          echo "POSTGRES_DB=$POSTGRES_DB" >> .env
+          echo "FRONTEND_IMAGE=$FRONTEND_IMAGE" >> .env
+          echo "API_IMAGE=$API_IMAGE" >> .env
+
       - name: Deploy config to server (on push to main)
         if: github.event_name == 'push'
         run: |
@@ -47,13 +61,14 @@ jobs:
             . \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.REMOTE_PATH }}/
 
+      - name: Upload .env to server (on dispatch)
+        run: |
+          scp -o StrictHostKeyChecking=no .env ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ env.REMOTE_PATH }}/.env
+
       - name: Deploy / update containers
-        env:
-          FRONTEND_IMAGE: ${{ github.event.action == 'frontend-updated' && github.event.client_payload.image || '' }}
-          API_IMAGE: ${{ github.event.action == 'api-updated' && github.event.client_payload.image || '' }}
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "cd ${{ env.REMOTE_PATH }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && export API_IMAGE='$API_IMAGE' && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
+            "cd ${{ env.REMOTE_PATH }} && docker compose --env-file .env pull && docker compose --env-file .env up -d --remove-orphans && docker image prune -f"
 
       - name: Show container logs on failure
         if: failure()
@@ -91,6 +106,20 @@ jobs:
       - name: Generate nginx config
         run: sed 's/{{DOMAIN}}/test.petergof-sciense-rag.ru/g' nginx/default.conf.template > nginx/default.conf
 
+      - name: Create .env for test
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER_TEST }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD_TEST }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          FRONTEND_IMAGE: ${{ github.event_name == 'pull_request' && 'ghcr.io/petergof-search-service/frontend:latest' || (github.event.action == 'frontend-test-updated' && github.event.client_payload.image) || '' }}
+          API_IMAGE: ${{ github.event.action == 'api-test-updated' && github.event.client_payload.image || (github.event_name == 'pull_request' && 'ghcr.io/petergof-search-service/api:latest') || '' }}
+        run: |
+          echo "POSTGRES_USER=$POSTGRES_USER" > .env
+          echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" >> .env
+          echo "POSTGRES_DB=$POSTGRES_DB" >> .env
+          echo "FRONTEND_IMAGE=$FRONTEND_IMAGE" >> .env
+          echo "API_IMAGE=$API_IMAGE" >> .env
+
       - name: Deploy config to test server
         run: |
           rsync -avz --delete \
@@ -99,13 +128,14 @@ jobs:
             . \
             ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }}:${{ env.REMOTE_PATH_TEST }}/
 
+      - name: Upload .env to test server
+        run: |
+          scp -o StrictHostKeyChecking=no .env ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }}:${{ env.REMOTE_PATH_TEST }}/.env
+
       - name: Deploy / update containers
-        env:
-          FRONTEND_IMAGE: ${{ github.event_name == 'pull_request' && 'ghcr.io/petergof-search-service/frontend:latest' || (github.event.action == 'frontend-test-updated' && github.event.client_payload.image) || '' }}
-          API_IMAGE: ${{ github.event.action == 'api-test-updated' && github.event.client_payload.image || (github.event_name == 'pull_request' && 'ghcr.io/petergof-search-service/api:latest') || '' }}
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER_TEST }}@${{ secrets.SSH_HOST_TEST }} \
-            "cd ${{ env.REMOTE_PATH_TEST }} && export FRONTEND_IMAGE='$FRONTEND_IMAGE' && export API_IMAGE='$API_IMAGE' && docker compose down && docker compose pull && docker compose up -d --remove-orphans && docker image prune -f"
+            "cd ${{ env.REMOTE_PATH_TEST }} && docker compose --env-file .env down && docker compose --env-file .env pull && docker compose --env-file .env up -d --remove-orphans && docker image prune -f"
 
       - name: Show container logs on failure
         if: failure()
