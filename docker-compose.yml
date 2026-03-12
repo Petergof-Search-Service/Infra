@@ -28,6 +28,10 @@ services:
       RAG_YANDEX_FOLDER_ID: ${RAG_YANDEX_FOLDER_ID}
       RAG_ACCESS_KEY: ${RAG_ACCESS_KEY}
       RAG_SECRET_KEY: ${RAG_SECRET_KEY}
+
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
     depends_on:
       db:
         condition: service_healthy
