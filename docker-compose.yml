@@ -28,6 +28,7 @@ services:
       S3_BUCKET_NAME: ${S3_BUCKET_NAME}
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
+      CLOUD_FUNCTION_API_KEY: ${CLOUD_FUNCTION_API_KEY}
     depends_on:
       db:
         condition: service_healthy
