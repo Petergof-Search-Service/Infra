@@ -1,6 +1,11 @@
 # Общий конфиг сайта. Генерируется: подставить {{DOMAIN}} (petergof-sciense-rag.ru или test.petergof-sciense-rag.ru).
 # Подключает фрагменты из snippets/.
 
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
 server {
     listen 80;
     listen [::]:80;
