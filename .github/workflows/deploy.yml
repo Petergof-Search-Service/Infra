@@ -92,7 +92,7 @@ jobs:
       - name: Deploy / update containers
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "cd ${{ env.REMOTE_PATH }} && docker compose --env-file .env pull && docker compose --env-file .env up -d --remove-orphans && docker image prune -f"
+            "cd ${{ env.REMOTE_PATH }} && docker compose --env-file .env pull && docker compose --env-file .env up -d --remove-orphans && docker compose --env-file .env exec -T nginx nginx -s reload && docker image prune -f"
 
       - name: Show container logs on failure
         if: failure()
